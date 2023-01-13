@@ -1,0 +1,14 @@
+bintrees==2.2.0
+bitso-py==3.0.1
+certifi==2021.10.8
+charset-normalizer==2.0.11
+future==0.18.2
+idna==3.3
+mock==4.0.3
+python-dateutil==2.8.2
+python-dotenv==0.21.0
+requests==2.27.1
+six==1.16.0
+threaded==4.1.0
+urllib3==1.26.8
+websocket-client==0.40.0
