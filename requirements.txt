@@ -1,7 +1,8 @@
-bintrees==2.2.0
+# bintrees==2.2.0
 bitso-py==3.0.1
 certifi==2021.10.8
 charset-normalizer==2.0.11
+colorama==0.4.6
 future==0.18.2
 idna==3.3
 mock==4.0.3
@@ -11,4 +12,4 @@ requests==2.27.1
 six==1.16.0
 threaded==4.1.0
 urllib3==1.26.8
-websocket-client==0.40.0
+# websocket-client==0.40.0

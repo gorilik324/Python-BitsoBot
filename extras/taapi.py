@@ -13,7 +13,7 @@ payload = {
         "symbol": "BTC/USDT",
         "interval": "1m",
         "indicators": [
-            {"indicator": "stochrsi","backtracks":5,"kPeriod":20,"dPeriod":10,"rsiPeriod":15,"stochasticPeriod":30}, 
+            {"indicator": "stochrsi","backtracks":8,"kPeriod":3,"dPeriod":7}, 
             {"indicator": "macd","backtracks":5}]
     } 
 }
@@ -25,11 +25,11 @@ def FetchIndicators():
 
     try:
         # RSI OPERATION should return min and max value 
-        rsi = [backtrack['result']['valueFastD'] for backtrack in response['data'][0:5]]
+        rsi = [backtrack['result']['valueFastD'] for backtrack in response['data'][0:8]]
         rsi = RsiSignal(rsi)
 
         # MACD OPERATION should return TRUE if cross apreared in period and direction of trend
-        valueMACDHist   = [backtrack['result']['valueMACDHist'] for backtrack in response['data'][5:10]]
+        valueMACDHist   = [backtrack['result']['valueMACDHist'] for backtrack in response['data'][8:13]]
         signal = getSignal(valueMACDHist)
         
         return({'RSI': rsi,'MACD':signal})

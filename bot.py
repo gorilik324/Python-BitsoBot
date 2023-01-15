@@ -1,14 +1,17 @@
-import bitso
-import os
+from colorama import Fore,Back,Style, init
 from dotenv import load_dotenv
 import datetime as dt
+import time
+import bitso
+import os
 
 from extras.taapi import FetchIndicators
-
+    
+init(autoreset=True)
 load_dotenv() 
 
 class Bot:
-    init_balance = init_logs = 0
+    init_balance = init_logs = init_trades = 0
 
     def __init__(self,coin):
         # INITIATE API
@@ -17,41 +20,41 @@ class Bot:
 
         self.api = bitso.Api(API_KEY, API_SECRET) 
         balances = self.api.balances()
-        self.gridIndex = 'hold'
+        self.gridIndex = 'Hold'
 
         #ESTABLISH COIN NAMES
-        self.minor_name = coin[4:7] 
+        self.minor_name = coin[4:] 
         self.major_name = coin[:3]
 
-        #ESTABLISH COINS CURRENT PRICES
-        self.minor_price = float(self.api.ticker(self.minor_name + "_" + "mxn").last)
-        self.major_price = float(self.api.ticker(self.major_name + "_" + self.minor_name).last)
-
         #ESTABLISH COINS CURRENT BALANCES
-        self.minor_balanace = round(float(getattr(balances, self.minor_name).available),2)
-        self.major_balanace = round(float(getattr(balances, self.major_name).available),2)
+        self.minor_balance = round(float(getattr(balances, self.minor_name).available),2)
+        self.major_balance = round(float(getattr(balances, self.major_name).available),2)
+
+        #ESTABLISH COINS CURRENT PRICES
+        self.major_price = float(self.api.ticker(self.major_name + "_" + self.minor_name).last)
+        try:
+            self.minor_price = float(self.api.ticker(self.minor_name + "_mxn").last)
+        except:
+            major_mxn = float(self.api.ticker(self.major_name + "_mxn").last)
+            self.minor_price = major_mxn/self.major_price 
 
         # START LOGGING     
         print('\n============== Starting Bot ==============')
         print(' ------ ' + str(dt.datetime.now()) + ' ------ ')
         self.writeLog('Starting Bot')
 
-        # START WITH HALF OG BOTH COINS
-        self.buy(amount= self.minor_balanace/2)
-        self.get_balance()
-     
 # Print methods ------------------------------------------------------------
 
     def get_balance(self):
 
         # UPDATE COINS CURRENT BALANCES
         balances = self.api.balances()
-        self.minor_balanace = round(float(getattr(balances, self.minor_name).available),2)
-        self.major_balanace = round(float(getattr(balances, self.major_name).available),2)
+        self.minor_balance = float(getattr(balances, self.minor_name).available)
+        self.major_balance = float(getattr(balances, self.major_name).available)
 
         # GET BALANCE IN FIAT *MXN
-        mxn = round(self.minor_balanace * self.minor_price + self.major_balanace * self.major_price,2)
-        message = f'BALANCE {self.minor_name.upper()}: '+ str(self.minor_balanace) + f', {self.major_name.upper()}: ' + str(self.major_balanace) + f' ---> TOTAL: {mxn} MXN\n'
+        mxn = self.minor_balance * self.minor_price + self.major_balance * self.major_price
+        message = f'{self.minor_name.upper()}:  {self.minor_balance:.4f} + {self.major_name.upper()}: {self.major_balance:.6f} ---> TOTAL: {mxn:.2f} MXN\n'
         self.writeLog(message)
         print(message)
 
@@ -73,46 +76,71 @@ class Bot:
         f.write(str(dt.datetime.now()) + ' --- ' + message + '\n')
         f.close()
      
+    def open_orders(self):
+        book = self.major_name + "_" + self.minor_name
+        oo = self.api.open_orders(book)
+        print(oo)
+    
+    def trades(self):
+        book = self.major_name + "_" + self.minor_name
+        utx = self.api.user_trades(book)
+        
+        print("UPDATING trades.txt")
+        try:
+            if self.init_trades == 0:
+                self.init_trades = 1
+                f = open(r'logs\trades.txt','w+')
+            else:
+                f = open(r'logs\trades.txt','a')
+            f.write(utx)
+            f.close()
+            print('Update completed')
+        except:
+            print("Error updating trades.csv") 
+
 # Important methods ------------------------------------------------------------
 
     def buy(self,amount):
         book = self.major_name + "_" + self.minor_name
-        coin = amount/self.major_price
+        coins = round(amount,1)/self.major_price
+        if self.minor_balance >= amount:
+            order = self.api.place_order(book=book, side='buy', order_type='market', major=f'{coins:.8f}')
 
-        if self.minor_balanace >= amount:
-            # order = self.api.place_order(book=book, side='buy', order_type='limit', major=coin, price=self.major_price)
-            
-            message = '********* BOUGHT ' + format(coin,'.2f') + ' ' + self.major_name.upper() + ' @ ' + str(self.major_price) + ' MXN *********'
-            self.writeLog(message)
+            print(f'{Style.BRIGHT + Fore.GREEN}********* BOUGHT {coins:.6f}  {self.major_name.upper()}  @ {self.major_price:.2f}  MXN *********{Style.RESET_ALL}')
+            self.writeLog(f'********* BOUGHT {coins:.6f}  {self.major_name.upper()}  @ {self.major_price:.2f}  MXN *********')
+            self.writeLog(f"Buy order id: {order['oid']}")
         else:
             print(f'NOT ENOUGH {self.minor_name.upper()}')
    
     def sell(self,amount):
-        if self.major_balanace > amount:
+        if self.major_balance > amount:
             book = self.major_name + "_" + self.minor_name
-            # order = self.api.place_order(book=book, side='sell', order_type='limit', major=amount, price=self.major_price)
+            order = self.api.place_order(book=book, side='sell', order_type='market', major=f'{amount:.8f}')
             
-            message = '********* SOLD ' + format(amount,'.2f') + ' ' + self.major_name.upper() + ' @ ' + str(self.major_price) + ' MXN *********' 
-            self.writeLog(message)
+            print(f'{Style.BRIGHT + Fore.RED}********* SOLD {amount:.6f} {self.major_name.upper()} @ {self.major_price} MXN *********{Style.RESET_ALL}' )
+            self.writeLog(f'********* SOLD {amount:.6f} {self.major_name.upper()} @ {self.major_price} MXN *********')
+            self.writeLog(f"Sell order id: {order['oid']}")
         else:
             print(f'NOT ENOUGH {self.major_name.upper()}')
        
 
     def update(self):
-        # BitsoBook = self.api.available_books()
-        # BitsoBook.btc_usdt.minimum_value  # Minor
         try:
             self.major_price = float(self.api.ticker(self.major_name + "_" + self.minor_name).last)
+            print(str(dt.datetime.now()) + f' {self.major_name.upper()} @ ' + Style.BRIGHT + f'${self.major_price}' + Style.RESET_ALL)
+
             self.Logic()
 
-            if self.gridIndex == 'hold':
+            if self.gridIndex == 'Hold':
                 pass
-            else:
-                print("\n*** UPDATING BOT ***")
-                
-                if self.gridIndex == 'sell-all': self.sell(self.major_balanace)
-                elif self.gridIndex == 'buy':    self.buy(1)
-                elif self.gridIndex == 'sell':   self.sell(1)
+            else:                
+                if self.gridIndex == 'Buy':    
+                    print("\n" + Fore.GREEN + "--- BUYING ---")
+                    self.buy(self.minor_balance)
+                    
+                elif self.gridIndex == 'Sell':   
+                    print("\n" + Fore.RED +  "--- SELLING ---")
+                    self.sell(self.major_balance)
                 
                 self.get_balance()
         except:
@@ -126,16 +154,15 @@ class Bot:
 
             if macd == 'Buy':
                 if rsi == 'Buy':
-                    self.gridIndex = 'buy'
+                    self.gridIndex = 'Buy'
                 elif rsi == 'Sell':
-                    self.gridIndex = 'hold'     
+                    self.gridIndex = 'Hold'     
             elif macd == 'Sell':
                 if rsi == 'Buy':
-                    self.gridIndex = 'hold'
+                    self.gridIndex = 'Hold'
                 elif rsi == 'Sell':
-                    self.gridIndex = 'sell' 
+                    self.gridIndex = 'Sell' 
             else:
-                self.gridIndex = 'hold'
+                self.gridIndex = 'Hold'
         except:
-            self.gridIndex = 'hold'
-        print(f'\nSTATUS: {self.gridIndex}, RSI: {rsi}, MACD:{macd}\n')
+            self.gridIndex = 'Hold'
