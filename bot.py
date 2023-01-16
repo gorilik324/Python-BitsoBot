@@ -60,7 +60,6 @@ class Bot:
         # GET BALANCE IN FIAT *MXN
         mxn = (self.minor_balance * self.minor_price) + (self.major_balance * self.major_price * self.minor_price)
         message = f'{self.minor_name.upper()}:  {self.minor_balance:.4f} + {self.major_name.upper()}: {self.major_balance:.6f} ---> TOTAL: {mxn:,.2f} MXN\n'
-        self.writeLog(message)
         print(message)
 
         if self.init_balance == 0:
@@ -85,23 +84,6 @@ class Bot:
         oo = self.api.open_orders(book)
         print(oo)
     
-    def trades(self):
-        book = self.major_name + "_" + self.minor_name
-        utx = self.api.user_trades(book)
-        
-        print("UPDATING trades.txt")
-        try:
-            if self.init_trades == 0:
-                self.init_trades = 1
-                f = open(r'logs\trades.txt','w+')
-            else:
-                f = open(r'logs\trades.txt','a')
-            f.write(utx)
-            f.close()
-            print('Update completed')
-        except:
-            print("Error updating trades.csv") 
-
 # Important methods ------------------------------------------------------------
 
     def buy(self,amount):
@@ -109,11 +91,11 @@ class Bot:
         coins = (math.floor(amount*10)/10)/self.major_price
         if (self.minor_balance >= amount) and (amount >= self.minimum_value):
             print("\n" + Fore.GREEN + "--- BUYING ---")
-            order = self.api.place_order(book=book, side='buy', order_type='market', major=f'{coins:.8f}')
+            order = self.api.place_order(book=book, side='buy', order_type='market', minor=f'{amount:.8f}'[:8])
 
             print(f'{Style.BRIGHT + Fore.GREEN}********* BOUGHT {coins:.6f}  {self.major_name.upper()}  @ {self.major_price:,.2f}  {self.minor_name.upper()} *********{Style.RESET_ALL}')
             self.writeLog(f'********* BOUGHT {coins:.6f}  {self.major_name.upper()}  @ {self.major_price:,.2f}  {self.minor_name.upper()} *********')
-            self.writeLog(f"Buy order id: {order['oid']}")
+            self.writeLog(f"\nORDER ID: {order['oid']}")
         else:
             print(f'NOT ENOUGH {self.minor_name.upper()}')
    
@@ -125,7 +107,7 @@ class Bot:
             
             print(f'{Style.BRIGHT + Fore.RED}********* SOLD {amount:.6f} {self.major_name.upper()} @ {self.major_price:,.2f} {self.minor_name.upper()} *********{Style.RESET_ALL}' )
             self.writeLog(f'********* SOLD {amount:.6f} {self.major_name.upper()} @ {self.major_price:,.2f} {self.minor_name.upper()} *********')
-            self.writeLog(f"Sell order id: {order['oid']}")
+            self.writeLog(f"\nORDER ID: {order['oid']}")
         else:
             print(f'NOT ENOUGH {self.major_name.upper()}')
        
