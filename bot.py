@@ -64,26 +64,21 @@ class Bot:
 
         if self.init_balance == 0:
             self.init_balance = 1
-            f = open(r'logs\balance.txt','w+')
+            f = open(r'logs/balance.txt','w+')
         else:
-            f = open(r'logs\balance.txt','a')
-        f.write(str(dt.datetime.now()) +';'+ str(mxn) + '\n')
+            f = open(r'logs/balance.txt','a')
+        f.write(str(dt.datetime.now()) +';'+ message + '\n')
         f.close()
 
     def writeLog(self,message):
         if self.init_logs == 0:
             self.init_logs = 1
-            f = open(r'logs\log.txt','w+')
+            f = open(r'logs/log.txt','w+')
         else:
-            f = open(r'logs\log.txt','a')
+            f = open(r'logs/log.txt','a')
         f.write(str(dt.datetime.now()) + ' --- ' + message + '\n')
         f.close()
-     
-    def open_orders(self):
-        book = self.major_name + "_" + self.minor_name
-        oo = self.api.open_orders(book)
-        print(oo)
-    
+
 # Important methods ------------------------------------------------------------
 
     def buy(self,amount):

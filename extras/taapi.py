@@ -11,10 +11,10 @@ payload = {
     "construct": {
         "exchange": "binance",
         "symbol": "BTC/USDT",
-        "interval": "1m",
+        "interval": "5m",
         "indicators": [
-            {"indicator": "stochrsi","backtracks":8,"kPeriod":3,"dPeriod":7}, 
-            {"indicator": "macd","backtracks":5}]
+            {"indicator": "rsi","backtracks":8,"period":10}, 
+            {"indicator": "macd","backtracks":2,"optInFastPeriod":3,"optInSlowPeriod":10,"optInSignalPeriod":5}]
     } 
 }
 
@@ -25,11 +25,11 @@ def FetchIndicators():
 
     try:
         # RSI OPERATION should return min and max value 
-        rsi = [backtrack['result']['valueFastD'] for backtrack in response['data'][0:8]]
+        rsi = [backtrack['result']['value'] for backtrack in response['data'][0:8]]
         rsi = RsiSignal(rsi)
 
         # MACD OPERATION should return TRUE if cross apreared in period and direction of trend
-        valueMACDHist   = [backtrack['result']['valueMACDHist'] for backtrack in response['data'][8:13]]
+        valueMACDHist   = [backtrack['result']['valueMACDHist'] for backtrack in response['data'][8:10]]
         signal = getSignal(valueMACDHist)
         
         return({'RSI': rsi,'MACD':signal})
@@ -48,8 +48,9 @@ def getSignal(valueMACDHist):
         return(signals[0])
     except:
         return('Hold')
+
 def RsiSignal(rsi):
-    signals =  list(filter(None,['Sell' if value >= 80 else 'Buy' if value <= 20 else None for value in rsi]))
+    signals =  list(filter(None,['Sell' if value >= 75 else 'Buy' if value <= 25 else None for value in rsi]))
     try:
         return(signals[0])
     except:

@@ -10,4 +10,4 @@ if __name__ == '__main__':
     li.start()
     while True:
         bot.update()
-        time.sleep(20)
+        time.sleep(60)
